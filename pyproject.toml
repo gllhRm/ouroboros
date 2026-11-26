@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ouroboros-peptides"
+version = "0.1.0"
+description = "Generate reproducible batches of short random peptides in FASTA format."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Guilherme Baiocchi" },
+    { name = "Codex" },
+]
+
+[tool.setuptools]
+package-dir = { "" = "." }
+py-modules = ["ouroboros"]

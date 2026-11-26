@@ -1,4 +1,4 @@
-"""Geração de peptídeos aleatórios em formato FASTA."""
+"""Generate short random peptides and write them in FASTA format."""
 
 import argparse
 import random
@@ -8,76 +8,77 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, Iterator, Optional, TextIO
 
 
-AMINOACIDOS = "ACDEFGHIKLMNPQRSTVWY"
+AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
 
-def gerar_peptideos(
-    quantidade: int, tamanho_min: int, tamanho_max: int, *, semente: Optional[int] = None
+def generate_peptides(
+    count: int, min_length: int, max_length: int, *, seed: Optional[int] = None
 ) -> Iterator[str]:
-    """Sorteia cada comprimento e cada aminoácido com distribuição uniforme."""
-    if quantidade < 1:
-        raise ValueError("a quantidade deve ser pelo menos 1")
-    if not 2 <= tamanho_min <= tamanho_max <= 50:
+    """Yield peptides with uniformly sampled lengths and amino acids."""
+    if count < 1:
+        raise ValueError("count must be at least 1")
+    if not 2 <= min_length <= max_length <= 50:
         raise ValueError(
-            "use comprimentos entre 2 e 50 aminoácidos, do menor para o maior"
+            "lengths must be between 2 and 50 amino acids, with the minimum first"
         )
 
-    sorteio = random.Random(semente)
-    for _ in range(quantidade):
-        tamanho = sorteio.randint(tamanho_min, tamanho_max)
-        yield "".join(sorteio.choice(AMINOACIDOS) for _ in range(tamanho))
+    rng = random.Random(seed)
+    for _ in range(count):
+        length = rng.randint(min_length, max_length)
+        yield "".join(rng.choice(AMINO_ACIDS) for _ in range(length))
 
 
-def escrever_fasta(sequencias: Iterable[str], arquivo: TextIO) -> None:
-    for indice, sequencia in enumerate(sequencias, start=1):
-        arquivo.write(f">pep_{indice:04d}\n{sequencia}\n")
+def write_fasta(sequences: Iterable[str], stream: TextIO) -> None:
+    """Write one numbered FASTA record per sequence to a text stream."""
+    for index, sequence in enumerate(sequences, start=1):
+        stream.write(f">pep_{index:04d}\n{sequence}\n")
 
 
-def salvar_fasta(sequencias: Iterable[str], destino: Path) -> None:
-    """Substitui o destino somente depois de gravar o lote completo."""
-    with TemporaryDirectory(dir=destino.parent) as pasta:
-        temporario = Path(pasta) / "lote.fasta"
-        with temporario.open("w", encoding="ascii", newline="\n") as arquivo:
-            escrever_fasta(sequencias, arquivo)
-        temporario.replace(destino)
+def save_fasta(sequences: Iterable[str], destination: Path) -> None:
+    """Replace the destination after the entire batch has been written."""
+    with TemporaryDirectory(dir=destination.parent) as folder:
+        temporary = Path(folder) / "batch.fasta"
+        with temporary.open("w", encoding="ascii", newline="\n") as stream:
+            write_fasta(sequences, stream)
+        temporary.replace(destination)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m ouroboros",
-        description="Gera sequências de peptídeos curtos em formato FASTA.",
+        description="Generate short random peptides in FASTA format.",
     )
     parser.add_argument(
-        "-n", "--quantidade", type=int, default=5, metavar="N",
-        help="quantidade de sequências (padrão %(default)s)",
+        "-n", "--count", type=int, default=5, metavar="N",
+        help="number of peptides to generate (default %(default)s)",
     )
     parser.add_argument(
-        "-t", "--tamanho", type=int, nargs="+", default=(5, 12), metavar="AA",
-        help="um comprimento fixo ou dois limites inclusivos entre 2 e 50 (padrão de 5 a 12)",
+        "-l", "--length", "-t", type=int, nargs="+", default=(5, 12), metavar="AA",
+        help="one fixed length or two inclusive bounds from 2 to 50 (default 5 to 12)",
     )
     parser.add_argument(
-        "--semente", type=int, metavar="N", help="semente inteira para reproduzir o lote",
+        "--seed", type=int, metavar="N", help="integer seed for a reproducible batch",
     )
     parser.add_argument(
-        "-o", "--saida", type=Path, metavar="ARQUIVO",
-        help="caminho do arquivo FASTA de destino (por padrão, escreve no terminal)",
+        "-o", "--output", type=Path, metavar="FILE",
+        help="write FASTA to this file (default standard output)",
     )
     args = parser.parse_args()
-    if len(args.tamanho) > 2:
-        parser.error("--tamanho aceita um comprimento fixo ou dois limites")
+    if len(args.length) > 2:
+        parser.error("--length accepts one fixed length or two bounds")
 
-    sequencias = gerar_peptideos(
-        args.quantidade, args.tamanho[0], args.tamanho[-1], semente=args.semente
+    sequences = generate_peptides(
+        args.count, args.length[0], args.length[-1], seed=args.seed
     )
     try:
-        if args.saida is None:
-            escrever_fasta(sequencias, sys.stdout)
+        if args.output is None:
+            write_fasta(sequences, sys.stdout)
         else:
-            salvar_fasta(sequencias, args.saida)
-    except ValueError as erro:
-        parser.error(str(erro))
-    except OSError as erro:
-        parser.exit(1, f"Falha ao escrever o FASTA. {erro}\n")
+            save_fasta(sequences, args.output)
+    except ValueError as error:
+        parser.error(str(error))
+    except OSError as error:
+        parser.exit(1, f"Could not write FASTA. {error}\n")
 
 
 if __name__ == "__main__":

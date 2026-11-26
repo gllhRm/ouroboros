@@ -1,0 +1,12 @@
+name: ouroboros
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.14.10
+  - jupyterlab=4.5.11
+  - ipykernel=7.4.0
+  - nbconvert-core=7.17.2
+  - pip=26.2.2
+  - pip:
+      - -e .

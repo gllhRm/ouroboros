@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+*.egg-info/
+/build/
+.ipynb_checkpoints/
+/notebooks/example_peptides.fasta
